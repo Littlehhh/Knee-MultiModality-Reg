@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
 #include "itkMeshFileReader.h"
@@ -21,7 +19,7 @@ int main( int argc, char * argv[] )
     }
 
 
-    using PixelType = unsigned char;
+    using PixelType = float;
     constexpr unsigned int Dimension = 3;
 
     using ImageType = itk::Image< PixelType, Dimension >;
