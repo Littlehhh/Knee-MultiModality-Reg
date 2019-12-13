@@ -4,7 +4,7 @@
 # compile CXX with /Library/Developer/CommandLineTools/usr/bin/c++
 CXX_FLAGS =   -g -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.14.sdk   -std=gnu++14
 
-CXX_DEFINES = -DITK_IO_FACTORY_REGISTER_MANAGER -DvtkRenderingCore_AUTOINIT="3(vtkInteractionStyle,vtkRenderingFreeType,vtkRenderingOpenGL2)"
+CXX_DEFINES = -DDEBUG -DITK_IO_FACTORY_REGISTER_MANAGER -DvtkRenderingCore_AUTOINIT="3(vtkInteractionStyle,vtkRenderingFreeType,vtkRenderingOpenGL2)"
 
-CXX_INCLUDES = -I/Users/hui/Projects/Knee-MultiModality-Reg/cmake-build-debug/ITKFactoryRegistration -I/usr/local/include/vtk-8.2 -I/usr/local/include/ITK-5.0 
+CXX_INCLUDES = -I/Users/hui/Projects/Knee-MultiModality-Reg/cmake-build-debug/ITKFactoryRegistration -I/usr/local/include/vtk-8.2 -isystem /usr/local/include/ITK-5.0 -isystem /usr/local/include/ITK-5.0/Utilities -isystem /usr/local/include 
 
