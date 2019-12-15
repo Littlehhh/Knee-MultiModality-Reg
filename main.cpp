@@ -2,6 +2,9 @@
 #include "itkImageFileWriter.h"
 #include "itkMeshFileReader.h"
 #include "itkMeshFileWriter.h"
+#include "itkTransformFileWriter.h"
+#include "itkCastImageFilter.h"
+#include "itkResampleImageFilter.h"
 
 #include "itkImage.h"
 #include "itkPointSet.h"
@@ -62,24 +65,30 @@ typename PointSetType::Pointer itkImageToPointSet(itk::ImageFileReader< ImageTyp
     using PointType = typename PointSetType::PointType;
     PointType point;
     unsigned long pointId = 0;
+    unsigned long samples = 0;
     while( !it.IsAtEnd())
     {
-        if(  it.Get() - 0  > 1e-2 )
+        if(  it.Get() - 0 > 1e-2 )
         {
-            // Convert the pixel position into a Point
-            image->TransformIndexToPhysicalPoint( it.GetIndex() , point );
-            pointSet->SetPoint( pointId, point );
-            // Transfer the pixel data to the value associated with the point.
-            pointSet->SetPointData( pointId, it.Get() );
-            ++pointId;
+            if( samples % 10 == 0 )
+            {
+                // Convert the pixel position into a Point
+                image->TransformIndexToPhysicalPoint( it.GetIndex() , point );
+                pointSet->SetPoint( pointId, point );
+                // Transfer the pixel data to the value associated with the point.
+                pointSet->SetPointData( pointId, it.Get() );
+                ++pointId;
+            }
+            ++samples;
         }
         ++it;
-
     }
     std::cout << "Number Of Points = ";
     std::cout << pointSet->GetNumberOfPoints() << std::endl;
     return pointSet;
 }
+
+
 
 
 int main( int argc, char * argv[] )
@@ -98,13 +107,13 @@ int main( int argc, char * argv[] )
     using PointSetType = itk::PointSet< PixelType, Dimension >;
     using ImageReaderType = itk::ImageFileReader< ImageType >;
 
-    const char * moving_image = argv[1];
-    const char * fixed_image = argv[2];
+    const char * moving_image_label = argv[1];
+    const char * fixed_image_label = argv[2];
 
     ImageReaderType::Pointer moving_reader = ImageReaderType::New();
     ImageReaderType::Pointer fixed_reader = ImageReaderType::New();
-    moving_reader->SetFileName( moving_image  );
-    fixed_reader->SetFileName( fixed_image  );
+    moving_reader->SetFileName( moving_image_label  );
+    fixed_reader->SetFileName( fixed_image_label  );
     try
     {
         moving_reader->Update();
@@ -116,9 +125,9 @@ int main( int argc, char * argv[] )
         std::cout << err << std::endl;
         return EXIT_FAILURE;
     }
-    std::cout << moving_image << std::endl;
+    std::cout << moving_image_label << std::endl;
     auto moving_PointSet = itkImageToPointSet<PointSetType, ImageType>(moving_reader);
-    std::cout << fixed_image << std::endl;
+    std::cout << fixed_image_label << std::endl;
     auto fixed_PointSet = itkImageToPointSet<PointSetType, ImageType>(fixed_reader);
 //
 // registration
@@ -195,6 +204,83 @@ int main( int argc, char * argv[] )
         return EXIT_FAILURE;
     }
     std::cout << "Solution = " << transform->GetParameters() << std::endl;
+    std::cout << "transform = " << transform << std::endl;
     std::cout << "Stopping condition: " << optimizer->GetStopConditionDescription() << std::endl;
+
+    using TransformWriterType = itk::TransformFileWriterTemplate< double >;
+    TransformWriterType::Pointer writer = TransformWriterType::New();
+
+    //
+    // We add a CompositeTransform with the
+    // SetInput() function. This function takes any \doxygen{Transform}
+    //
+
+    writer->SetInput( transform );
+
+    writer->SetFileName( "transformFileName.txt" );
+    // Software Guide : EndCodeSnippet
+    try
+    {
+        // Software Guide : BeginCodeSnippet
+        writer->Update();
+        // Software Guide : EndCodeSnippet
+    }
+    catch( itk::ExceptionObject & excp )
+    {
+        std::cerr << "Error while saving the transforms" << std::endl;
+        std::cerr << excp << std::endl;
+        return EXIT_FAILURE;
+    }
+
+
+// read origin image
+//
+//    const char * moving_image = "../Data/MR_up.nii";
+//    const char * fixed_image = "../Data/CT_right_up.nii";
+//    ImageReaderType::Pointer moving_image_reader = ImageReaderType::New();
+//    ImageReaderType::Pointer fixed_image_reader = ImageReaderType::New();
+//    moving_image_reader->SetFileName( moving_image  );
+//    fixed_image_reader->SetFileName( fixed_image  );
+//    try
+//    {
+//        moving_image_reader->Update();
+//        fixed_image_reader->Update();
+//    }
+//    catch( itk::ExceptionObject & err )
+//    {
+//        std::cout << "ExceptionObject caught !" << std::endl;
+//        std::cout << err << std::endl;
+//        return EXIT_FAILURE;
+//    }
+//
+//    using ResampleFilterType = itk::ResampleImageFilter<
+//            ImageType,
+//            ImageType >;
+//
+//    ResampleFilterType::Pointer resample = ResampleFilterType::New();
+//
+//    resample->SetTransform( registration->GetTransform() );
+//    resample->SetInput( moving_image_reader->GetOutput() );
+//
+//    ImageType::Pointer fixedImage = fixed_image_reader->GetOutput();
+//
+//    resample->SetSize(    fixedImage->GetLargestPossibleRegion().GetSize() );
+//    resample->SetOutputOrigin(  fixedImage->GetOrigin() );
+//    resample->SetOutputSpacing( fixedImage->GetSpacing() );
+//    resample->SetOutputDirection( fixedImage->GetDirection() );
+//    resample->SetDefaultPixelValue( 100 );
+//
+//
+//    // Prepare a writer and caster filters to send the resampled moving image to
+//    // a file
+//    //
+//
+//    using WriterType = itk::ImageFileWriter< ImageType >;
+//    WriterType::Pointer  writer =  WriterType::New();
+//    writer->SetFileName( argv[3] );
+//    writer->SetInput( resample->GetOutput() );
+//    writer->Update();
+
+
     return EXIT_SUCCESS;
 }
