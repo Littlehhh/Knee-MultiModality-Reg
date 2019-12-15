@@ -62,15 +62,19 @@ typename PointSetType::Pointer itkImageToPointSet(itk::ImageFileReader< ImageTyp
     using PointType = typename PointSetType::PointType;
     PointType point;
     unsigned long pointId = 0;
-    while( !it.IsAtEnd() )
+    while( !it.IsAtEnd())
     {
-        // Convert the pixel position into a Point
-        image->TransformIndexToPhysicalPoint( it.GetIndex() , point );
-        pointSet->SetPoint( pointId, point );
-        // Transfer the pixel data to the value associated with the point.
-        pointSet->SetPointData( pointId, it.Get() );
+        if(  it.Get() - 0  > 1e-2 )
+        {
+            // Convert the pixel position into a Point
+            image->TransformIndexToPhysicalPoint( it.GetIndex() , point );
+            pointSet->SetPoint( pointId, point );
+            // Transfer the pixel data to the value associated with the point.
+            pointSet->SetPointData( pointId, it.Get() );
+            ++pointId;
+        }
         ++it;
-        ++pointId;
+
     }
     std::cout << "Number Of Points = ";
     std::cout << pointSet->GetNumberOfPoints() << std::endl;
@@ -100,7 +104,7 @@ int main( int argc, char * argv[] )
     ImageReaderType::Pointer moving_reader = ImageReaderType::New();
     ImageReaderType::Pointer fixed_reader = ImageReaderType::New();
     moving_reader->SetFileName( moving_image  );
-    fixed_reader->SetFileName( fixed_image );
+    fixed_reader->SetFileName( fixed_image  );
     try
     {
         moving_reader->Update();
@@ -116,8 +120,9 @@ int main( int argc, char * argv[] )
     auto moving_PointSet = itkImageToPointSet<PointSetType, ImageType>(moving_reader);
     std::cout << fixed_image << std::endl;
     auto fixed_PointSet = itkImageToPointSet<PointSetType, ImageType>(fixed_reader);
-
+//
 // registration
+//
     using MetricType = itk::EuclideanDistancePointMetric<
             PointSetType, PointSetType >;
 
@@ -129,12 +134,12 @@ int main( int argc, char * argv[] )
     TransformType::Pointer transform = TransformType::New();
     // Optimizer Type
     using OptimizerType = itk::LevenbergMarquardtOptimizer;
-    OptimizerType::Pointer      optimizer     = OptimizerType::New();
+    OptimizerType::Pointer optimizer = OptimizerType::New();
     optimizer->SetUseCostFunctionGradient(false);
     // Registration Method
     using RegistrationType = itk::PointSetToPointSetRegistrationMethod<
             PointSetType, PointSetType >;
-    RegistrationType::Pointer   registration  = RegistrationType::New();
+    RegistrationType::Pointer registration  = RegistrationType::New();
 //
 // Scale the translation components of the Transform in the Optimizer
 //
@@ -172,7 +177,6 @@ int main( int argc, char * argv[] )
 //
 // Connect all the components required for the registration.
 //
-
     registration->SetMetric(        metric        );
     registration->SetOptimizer(     optimizer     );
     registration->SetTransform(     transform     );
