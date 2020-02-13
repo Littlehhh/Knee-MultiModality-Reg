@@ -15,7 +15,8 @@
         {
             "name": "Mac",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "/usr/local/include/ITK-5.0"
             ],
             "defines": [],
             "macFrameworkPath": [
