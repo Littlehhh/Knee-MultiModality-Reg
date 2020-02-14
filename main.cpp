@@ -19,6 +19,7 @@
 
 #include "utils.h"
 
+
 class CommandIterationUpdate : public itk::Command
 {
 public:
