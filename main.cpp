@@ -17,7 +17,7 @@
 #include "itkLevenbergMarquardtOptimizer.h"
 #include "itkPointSetToPointSetRegistrationMethod.h"
 
-#include "utils.h"
+#include "itkImageToPointSet.h"
 
 
 class CommandIterationUpdate : public itk::Command

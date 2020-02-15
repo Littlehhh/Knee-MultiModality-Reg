@@ -9,9 +9,11 @@
 #include "itkPointSet.h"
 #include "itkImageRegionConstIterator.h"
 #include "itkImageFileReader.h"
+#include "pcl/surface/vtk_smoothing/vtk_utils.h"
+
 
 template<typename PointSetType, typename ImageType>
-typename PointSetType::Pointer itkImageToPointSet(itk::ImageFileReader< ImageType > * reader) {
+typename PointSetType::Pointer itkImageToPointSet(typename itk::ImageFileReader< ImageType >::Pointer &reader) {
     typename PointSetType::Pointer pointSet = PointSetType::New();
     using IteratorType = itk::ImageRegionConstIterator< ImageType >;
     const ImageType * image = reader->GetOutput();
