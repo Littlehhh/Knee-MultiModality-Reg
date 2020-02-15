@@ -110,113 +110,113 @@ int main( int argc, char * argv[] )
     while( pointsIterator != Points->End() )
     {
         itk::Point<float, 3> p = pointsIterator.Value();  // access the pixel data
-        outfile << p << std::endl;              // print the pixel data
+        outfile << p << std::endl;              // save the pixel data
         ++pointsIterator;                      // advance to next pixel/point
     }
     outfile.close();
 
-////
-//// registration
-////
-//    using MetricType = itk::EuclideanDistancePointMetric<
-//            PointSetType, PointSetType >;
 //
-//    MetricType::Pointer  metric = MetricType::New();
-////
-//// Next, setup the tranform, optimizers, and registration.
-////
-//    using TransformType = itk::Euler3DTransform< double >;
-//    TransformType::Pointer transform = TransformType::New();
-//    // Optimizer Type
-//    using OptimizerType = itk::LevenbergMarquardtOptimizer;
-//    OptimizerType::Pointer optimizer = OptimizerType::New();
-//    optimizer->SetUseCostFunctionGradient(false);
-//    // Registration Method
-//    using RegistrationType = itk::PointSetToPointSetRegistrationMethod<
-//            PointSetType, PointSetType >;
-//    RegistrationType::Pointer registration  = RegistrationType::New();
-////
-//// Scale the translation components of the Transform in the Optimizer
-////
-//    OptimizerType::ScalesType scales( transform->GetNumberOfParameters() );
-////
-//// Next, set the scales and ranges for translations and rotations in the
-//// transform. Also, set the convergence criteria and number of iterations
-//// to be used by the optimizer.
-////
-//    constexpr double translationScale = 1000.0; // dynamic range of translations
-//    constexpr double rotationScale = 1.0;       // dynamic range of rotations
-//    scales[0] = 1.0 / rotationScale;
-//    scales[1] = 1.0 / rotationScale;
-//    scales[2] = 1.0 / rotationScale;
-//    scales[3] = 1.0 / translationScale;
-//    scales[4] = 1.0 / translationScale;
-//    scales[5] = 1.0 / translationScale;
+// registration
 //
-//    unsigned long   numberOfIterations =  2000;
-//    double          gradientTolerance  =  1e-4;   // convergence criterion
-//    double          valueTolerance     =  1e-4;   // convergence criterion
-//    double          epsilonFunction    =  1e-5;   // convergence criterion
+   using MetricType = itk::EuclideanDistancePointMetric<
+           PointSetType, PointSetType >;
+
+   MetricType::Pointer  metric = MetricType::New();
 //
-//    optimizer->SetScales( scales );
-//    optimizer->SetNumberOfIterations( numberOfIterations );
-//    optimizer->SetValueTolerance( valueTolerance );
-//    optimizer->SetGradientTolerance( gradientTolerance );
-//    optimizer->SetEpsilonFunction( epsilonFunction );
-////
-//// Here we start with an identity transform, although the user will usually
-//// be able to provide a better guess than this.
-////
-//    transform->SetIdentity();
-//    registration->SetInitialTransformParameters( transform->GetParameters() );
-////
-//// Connect all the components required for the registration.
-////
-//    registration->SetMetric(        metric        );
-//    registration->SetOptimizer(     optimizer     );
-//    registration->SetTransform(     transform     );
-//    registration->SetFixedPointSet( fixed_PointSet );
-//    registration->SetMovingPointSet( moving_PointSet );
-//    // Connect an observer
-//    CommandIterationUpdate::Pointer observer = CommandIterationUpdate::New();
-//    optimizer->AddObserver( itk::IterationEvent(), observer );
-//    try
-//    {
-//        registration->Update();
-//    }
-//    catch( itk::ExceptionObject & e )
-//    {
-//        std::cerr << e << std::endl;
-//        return EXIT_FAILURE;
-//    }
-//    std::cout << "Solution = " << transform->GetParameters() << std::endl;
-//    std::cout << "transform = " << transform << std::endl;
-//    std::cout << "Stopping condition: " << optimizer->GetStopConditionDescription() << std::endl;
+// Next, setup the tranform, optimizers, and registration.
 //
-//    using TransformWriterType = itk::TransformFileWriterTemplate< double >;
-//    TransformWriterType::Pointer writer = TransformWriterType::New();
+   using TransformType = itk::Euler3DTransform< double >;
+   TransformType::Pointer transform = TransformType::New();
+   // Optimizer Type
+   using OptimizerType = itk::LevenbergMarquardtOptimizer;
+   OptimizerType::Pointer optimizer = OptimizerType::New();
+   optimizer->SetUseCostFunctionGradient(false);
+   // Registration Method
+   using RegistrationType = itk::PointSetToPointSetRegistrationMethod<
+           PointSetType, PointSetType >;
+   RegistrationType::Pointer registration  = RegistrationType::New();
 //
-//    //
-//    // We add a CompositeTransform with the
-//    // SetInput() function. This function takes any \doxygen{Transform}
-//    //
+// Scale the translation components of the Transform in the Optimizer
 //
-//    writer->SetInput( transform );
+   OptimizerType::ScalesType scales( transform->GetNumberOfParameters() );
 //
-//    writer->SetFileName( "transformFileName.txt" );
-//    // Software Guide : EndCodeSnippet
-//    try
-//    {
-//        // Software Guide : BeginCodeSnippet
-//        writer->Update();
-//        // Software Guide : EndCodeSnippet
-//    }
-//    catch( itk::ExceptionObject & excp )
-//    {
-//        std::cerr << "Error while saving the transforms" << std::endl;
-//        std::cerr << excp << std::endl;
-//        return EXIT_FAILURE;
-//    }
+// Next, set the scales and ranges for translations and rotations in the
+// transform. Also, set the convergence criteria and number of iterations
+// to be used by the optimizer.
+//
+   constexpr double translationScale = 1000.0; // dynamic range of translations
+   constexpr double rotationScale = 1.0;       // dynamic range of rotations
+   scales[0] = 1.0 / rotationScale;
+   scales[1] = 1.0 / rotationScale;
+   scales[2] = 1.0 / rotationScale;
+   scales[3] = 1.0 / translationScale;
+   scales[4] = 1.0 / translationScale;
+   scales[5] = 1.0 / translationScale;
+
+   unsigned long   numberOfIterations =  2000;
+   double          gradientTolerance  =  1e-4;   // convergence criterion
+   double          valueTolerance     =  1e-4;   // convergence criterion
+   double          epsilonFunction    =  1e-5;   // convergence criterion
+
+   optimizer->SetScales( scales );
+   optimizer->SetNumberOfIterations( numberOfIterations );
+   optimizer->SetValueTolerance( valueTolerance );
+   optimizer->SetGradientTolerance( gradientTolerance );
+   optimizer->SetEpsilonFunction( epsilonFunction );
+//
+// Here we start with an identity transform, although the user will usually
+// be able to provide a better guess than this.
+//
+   transform->SetIdentity();
+   registration->SetInitialTransformParameters( transform->GetParameters() );
+//
+// Connect all the components required for the registration.
+//
+   registration->SetMetric(        metric        );
+   registration->SetOptimizer(     optimizer     );
+   registration->SetTransform(     transform     );
+   registration->SetFixedPointSet( fixed_PointSet );
+   registration->SetMovingPointSet( moving_PointSet );
+   // Connect an observer
+   CommandIterationUpdate::Pointer observer = CommandIterationUpdate::New();
+   optimizer->AddObserver( itk::IterationEvent(), observer );
+   try
+   {
+       registration->Update();
+   }
+   catch( itk::ExceptionObject & e )
+   {
+       std::cerr << e << std::endl;
+       return EXIT_FAILURE;
+   }
+   std::cout << "Solution = " << transform->GetParameters() << std::endl;
+   std::cout << "transform = " << transform << std::endl;
+   std::cout << "Stopping condition: " << optimizer->GetStopConditionDescription() << std::endl;
+
+   using TransformWriterType = itk::TransformFileWriterTemplate< double >;
+   TransformWriterType::Pointer writer = TransformWriterType::New();
+
+   //
+   // We add a CompositeTransform with the
+   // SetInput() function. This function takes any \doxygen{Transform}
+   //
+
+   writer->SetInput( transform );
+
+   writer->SetFileName( "transformFileName.txt" );
+   // Software Guide : EndCodeSnippet
+   try
+   {
+       // Software Guide : BeginCodeSnippet
+       writer->Update();
+       // Software Guide : EndCodeSnippet
+   }
+   catch( itk::ExceptionObject & excp )
+   {
+       std::cerr << "Error while saving the transforms" << std::endl;
+       std::cerr << excp << std::endl;
+       return EXIT_FAILURE;
+   }
 
 
 // read origin image
