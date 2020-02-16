@@ -1,3 +1,0 @@
-/Users/hui/Projects/Knee-MultiModality-Reg/build/CMakeFiles/rebuild_cache.dir
-/Users/hui/Projects/Knee-MultiModality-Reg/build/CMakeFiles/edit_cache.dir
-/Users/hui/Projects/Knee-MultiModality-Reg/build/CMakeFiles/Knee_MultiModality_Reg.dir
