@@ -9,7 +9,7 @@
 #include "itkPointSet.h"
 #include "itkImageRegionConstIterator.h"
 #include "itkImageFileReader.h"
-#include "pcl/surface/vtk_smoothing/vtk_utils.h"
+
 
 
 template<typename PointSetType, typename ImageType>

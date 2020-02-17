@@ -17,7 +17,7 @@ message(STATUS "project binary: " ${PROJECT_BINARY_DIR})
 message(STATUS "ITK libs: " ${ITK_LIBRARIES})
 message(STATUS "ITK USE: " ${ITK_USE_FILE})
 
-add_executable(Knee_MultiModality_Reg main.cpp utils.h itkImageToPointSet.h)
+add_executable(Knee_MultiModality_Reg main.cpp utils.h itkImageToPointSet.h itkRegistration.cpp)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
