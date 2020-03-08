@@ -34,6 +34,6 @@ include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-add_executable(Knee_MultiModality_Reg main.cpp utils.h itkImageToPointSet.h itkRegistration.cpp)
+add_executable(Knee_MultiModality_Reg main.cpp utils.h itkImageToPointSet.h itkRegistration.cpp itkImageTovtkPolyData.h itkImageTopclPointCloud.h)
 target_link_libraries(Knee_MultiModality_Reg Eigen3::Eigen ${PCL_LIBRARIES} ${VTK_LIBRARIES} ${ITK_LIBRARIES} )
 

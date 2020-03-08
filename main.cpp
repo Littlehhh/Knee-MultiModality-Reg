@@ -3,6 +3,7 @@
 //
 #define ITK_USE_SYSTEM_EIGEN
 // uha
+
 #include <fstream>
 #include <iostream>
 
@@ -29,12 +30,17 @@
 #include <pcl/filters/uniform_sampling.h>
 #include <pcl/io/ply_io.h>
 
+#include <pcl/registration/icp.h>
+
+#include "itkImageTopclPointCloud.h"
 
 using PixelType = float;
 constexpr unsigned int Dimension = 3;
 using ImageType = itk::Image< PixelType, Dimension >;
 using ImageReaderType = itk::ImageFileReader< ImageType >;
 using FilterType = itk::ImageToVTKImageFilter<ImageType>;
+using PointSetType = itk::PointSet< PixelType, Dimension >;
+
 
 int main( int argc, char * argv[] ) {
     // Verify the number of parameters in the command line
@@ -49,9 +55,7 @@ int main( int argc, char * argv[] ) {
     ImageReaderType::Pointer fixed_reader = ImageReaderType::New();
     moving_reader->SetFileName(moving_image_label);
     fixed_reader->SetFileName(fixed_image_label);
-    FilterType::Pointer filter = FilterType::New();
-    filter->SetInput(fixed_reader->GetOutput());
-//    filter->SetInput(moving_reader->GetOutput());
+
     try {
         moving_reader->Update();
         fixed_reader->Update();
@@ -61,40 +65,40 @@ int main( int argc, char * argv[] ) {
         std::cout << err << std::endl;
         return EXIT_FAILURE;
     }
-    filter->Update();
-    vtkImageData *fixed_image_vtk = filter->GetOutput();
-    fixed_image_vtk->Print(std::cout);
-    ImageType * itkimage = fixed_reader->GetOutput();
-    auto itkmetadata = fixed_reader->GetMetaDataDictionary();
-    // Convert the image to a polydata
-    vtkSmartPointer<vtkImageDataGeometryFilter> imageDataGeometryFilter =
-            vtkSmartPointer<vtkImageDataGeometryFilter>::New();
-    imageDataGeometryFilter->SetInputData(fixed_image_vtk);
-    imageDataGeometryFilter->Update();
-    vtkSmartPointer<vtkPolyData> vtkPointSet = imageDataGeometryFilter->GetOutput();
 
-    pcl::PolygonMesh pcl_data;
-    pcl::VTKUtils::convertToPCL(vtkPointSet, pcl_data);
-    pcl::PointCloud<pcl::PointXYZ> cloud;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr filteredCloud(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::fromPCLPointCloud2(pcl_data.cloud, cloud);
-//    cloud.sensor_origin_ = nullptr;
-//    cloud.sensor_orientation_ = nullptr;
-//    cout << cloud.sensor_orientation_;
-    pcl::UniformSampling<pcl::PointXYZ> pclfilter;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr test(&cloud);
-    pclfilter.setInputCloud(test);
-    pclfilter.setRadiusSearch(5);
-    pclfilter.filter(*filteredCloud);
+    auto fixed_cloud = itkImageTopclPointCloud<ImageType>(fixed_reader);
+    auto moving_cloud = itkImageTopclPointCloud<ImageType>(moving_reader);
+    pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+    icp.setInputSource(moving_cloud);
+    icp.setInputTarget(fixed_cloud);
+    icp.setMaximumIterations(120);
 
-//    pcl::io::savePLYFile("MR.ply", *filteredCloud);
-//    pcl::PCLPointCloud2Ptr test(&pcl_data.cloud);
-//    pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
+    pcl::PointCloud<pcl::PointXYZ>::Ptr final(new pcl::PointCloud<pcl::PointXYZ>);
+    icp.align(*final);
+    std::cout << "Max Iterations:" << icp.getMaximumIterations() << endl;
+    std::cout << "has converged:" << icp.hasConverged() << endl;
+    std::cout << " score: " << icp.getFitnessScore() << std::endl;
+    std::cout << icp.getFinalTransformation() << std::endl;
+//    pcl::PointCloud<pcl::PointXYZ>::Ptr filteredCloud(new pcl::PointCloud<pcl::PointXYZ>);
+//    pcl::UniformSampling<pcl::PointXYZ> pclfilter;
+//    pclfilter.setInputCloud(cloud);
+//    pclfilter.setRadiusSearch(5);
+//    pclfilter.filter(*filteredCloud);
+
+//    pcl::io::savePLYFile<pcl::PointXYZ>("MR.ply", *cloud);
+
     pcl::visualization::PCLVisualizer viewer("Cloud Viewer");
-    viewer.addPointCloud(filteredCloud, "sample cloud");
+
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> fixed_color(fixed_cloud, 0, 255, 0);
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> moving_color(moving_cloud, 0, 0, 255);
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> final_color(final, 255, 0, 0);
+
+
+    viewer.addPointCloud(fixed_cloud, fixed_color, "fixed cloud");
+//    viewer.addPointCloud(moving_cloud, moving_color, "moving cloud");
+    viewer.addPointCloud(final, final_color, "final");
+
     viewer.setBackgroundColor(0, 0, 0);
-    viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "sample cloud");
-//    viewer.addPointCloudNormals<pcl::PointXYZRGB, pcl::Normal> (cloud, normals, 10, 0.05, "normals");
     viewer.addCoordinateSystem(0.5);
     viewer.initCameraParameters();
     while (!viewer.wasStopped()) {
@@ -103,34 +107,5 @@ int main( int argc, char * argv[] ) {
     }
     return 0;
 }
-////    viewer->addPointCloud<pcl::PointXYZ>(test);
-//
-//
-//    // Create a mapper and actor
-//    vtkSmartPointer<vtkPolyDataMapper> mapper =
-//            vtkSmartPointer<vtkPolyDataMapper>::New();
-//    mapper->SetInputConnection(imageDataGeometryFilter->GetOutputPort());
-////    mapper->SetInputData(fixed_image_vtk);
-//    vtkSmartPointer<vtkActor> actor =
-//            vtkSmartPointer<vtkActor>::New();
-//    actor->SetMapper(mapper);
-//
-//    // Visualization
-//    vtkSmartPointer<vtkRenderer> renderer =
-//            vtkSmartPointer<vtkRenderer>::New();
-//    vtkSmartPointer<vtkRenderWindow> renderWindow =
-//            vtkSmartPointer<vtkRenderWindow>::New();
-//    renderWindow->AddRenderer(renderer);
-//    vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor =
-//            vtkSmartPointer<vtkRenderWindowInteractor>::New();
-//    renderWindowInteractor->SetRenderWindow(renderWindow);
-//    renderer->AddActor(actor);
-//    renderer->SetBackground(0,0,0); // Background color white
-//    renderWindow->Render();
-//    renderWindow->SetSize(800, 600);
-//    renderWindowInteractor->Start();
-//
-//}
-//
 
 
