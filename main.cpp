@@ -29,13 +29,15 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/filters/uniform_sampling.h>
 #include <pcl/io/ply_io.h>
-
+#include <pcl/filters/passthrough.h>
 #include <pcl/registration/icp.h>
 
 #include "itkImageTopclPointCloud.h"
 
 using PixelType = float;
 constexpr unsigned int Dimension = 3;
+
+
 using ImageType = itk::Image< PixelType, Dimension >;
 using ImageReaderType = itk::ImageFileReader< ImageType >;
 using FilterType = itk::ImageToVTKImageFilter<ImageType>;
@@ -68,10 +70,22 @@ int main( int argc, char * argv[] ) {
 
     auto fixed_cloud = itkImageTopclPointCloud<ImageType>(fixed_reader);
     auto moving_cloud = itkImageTopclPointCloud<ImageType>(moving_reader);
+
+    pcl::PassThrough<pcl::PointXYZ>::Ptr pass_z(new pcl::PassThrough<pcl::PointXYZ>);
+    pass_z->setInputCloud(moving_cloud);
+    pass_z->setFilterFieldName("z");
+    //z轴区间设置
+    pass_z->setFilterLimits(-50,-15);
+    //设置为保留还是去除
+    pass_z->setFilterLimitsNegative(false);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_fz(new pcl::PointCloud<pcl::PointXYZ>);
+    pass_z->filter(*cloud_fz);
+
+    moving_cloud = cloud_fz;
     pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
     icp.setInputSource(moving_cloud);
     icp.setInputTarget(fixed_cloud);
-    icp.setMaximumIterations(120);
+    icp.setMaximumIterations(50);
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr final(new pcl::PointCloud<pcl::PointXYZ>);
     icp.align(*final);
@@ -92,11 +106,13 @@ int main( int argc, char * argv[] ) {
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> fixed_color(fixed_cloud, 0, 255, 0);
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> moving_color(moving_cloud, 0, 0, 255);
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> final_color(final, 255, 0, 0);
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> fz_color(cloud_fz, 255, 0, 0);
 
 
     viewer.addPointCloud(fixed_cloud, fixed_color, "fixed cloud");
-//    viewer.addPointCloud(moving_cloud, moving_color, "moving cloud");
+    viewer.addPointCloud(moving_cloud, moving_color, "moving cloud");
     viewer.addPointCloud(final, final_color, "final");
+//    viewer.addPointCloud(cloud_fz, fz_color, "fz");
 
     viewer.setBackgroundColor(0, 0, 0);
     viewer.addCoordinateSystem(0.5);
