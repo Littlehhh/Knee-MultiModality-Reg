@@ -50,7 +50,6 @@ ReaditkImageToPCLPointCloud(const char *file_name){
     return itkImageTopclPointCloud<ImageType>(reader);
 }
 
-
 pcl::visualization::PCLVisualizer::Ptr customColourVis (std::vector<PointCloudPtr> &clouds)
 {
     // --------------------------------------------
@@ -85,14 +84,14 @@ int main( int argc, char * argv[] ) {
 //    auto moving_cloud = ReaditkImageToPCLPointCloud<ImageType>(fixed_image_label);
 //    pcl::io::savePLYFile<pcl::PointXYZ>("../Data/MR.ply", *fixed_cloud);
 //    pcl::io::savePLYFile<pcl::PointXYZ>("../Data/CT.ply", *moving_cloud);
-    std::vector<PointCloudPtr> clouds;
+    std::vector<PointCloudPtr> clouds_vis;
 
     PointCloudPtr fixed(new PointCloudType);
     PointCloudPtr moving(new PointCloudType);
     pcl::io::loadPLYFile("../Data/MR.ply", *fixed);
     pcl::io::loadPLYFile("../Data/CT.ply", *moving);
-//    clouds.push_back(fixed);
-//    clouds.push_back(moving);
+//    clouds_vis.push_back(fixed);
+//    clouds_vis.push_back(moving);
 
     pcl::PassThrough<pcl::PointXYZ>::Ptr pass_z(new pcl::PassThrough<pcl::PointXYZ>);
     pass_z->setInputCloud(moving);
@@ -101,7 +100,7 @@ int main( int argc, char * argv[] ) {
     pass_z->setFilterLimitsNegative(false);
     PointCloudPtr moving_PT(new PointCloudType);
     pass_z->filter(*moving_PT);
-    clouds.push_back(moving_PT);
+    clouds_vis.push_back(moving_PT);
 
     pass_z->setInputCloud(fixed);
     pass_z->setFilterFieldName("z");
@@ -109,7 +108,7 @@ int main( int argc, char * argv[] ) {
     pass_z->setFilterLimitsNegative(false);
     PointCloudPtr fixed_PT(new PointCloudType);
     pass_z->filter(*fixed_PT);
-    clouds.push_back(fixed_PT);
+    clouds_vis.push_back(fixed_PT);
 
 
     pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
@@ -123,9 +122,9 @@ int main( int argc, char * argv[] ) {
     std::cout << "has converged:" << icp.hasConverged() << endl;
     std::cout << "score: " << icp.getFitnessScore() << std::endl;
     std::cout << icp.getFinalTransformation() << std::endl;
-    clouds.push_back(final);
+    clouds_vis.push_back(final);
 
-    auto viewer = customColourVis(clouds);
+    auto viewer = customColourVis(clouds_vis);
     while (!viewer->wasStopped()) {
         viewer->spinOnce(100);
 //        std::this_thread::sleep_for(100ms);
