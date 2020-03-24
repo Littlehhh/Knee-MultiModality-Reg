@@ -88,14 +88,15 @@ pclPassThroughResult(PointCloudPtr moving, PointCloudPtr fixed){
     pcl::PassThrough<pcl::PointXYZ>::Ptr pass_z(new pcl::PassThrough<pcl::PointXYZ>);
     pass_z->setInputCloud(moving);
     pass_z->setFilterFieldName("z");
-    pass_z->setFilterLimits(-50,-15);
+//    pass_z->setFilterLimits(-50,-15);
+    pass_z->setFilterLimits(-65,-40);
     pass_z->setFilterLimitsNegative(false);
     PointCloudPtr moving_PT(new PointCloudType);
     pass_z->filter(*moving_PT);
 
     pass_z->setInputCloud(fixed);
     pass_z->setFilterFieldName("z");
-    pass_z->setFilterLimits(-65,-30);
+    pass_z->setFilterLimits(-65,-20);
     pass_z->setFilterLimitsNegative(false);
     PointCloudPtr fixed_PT(new PointCloudType);
     pass_z->filter(*fixed_PT);
@@ -104,6 +105,8 @@ pclPassThroughResult(PointCloudPtr moving, PointCloudPtr fixed){
     pcl::io::savePLYFile("../Data/CT_PT.ply", *moving_PT);
 
 }
+
+
 pcl::PointCloud<pcl::PointXYZ>::Ptr
 pclICP(PointCloudPtr moving, PointCloudPtr fixed){
     pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
@@ -184,13 +187,21 @@ int main( int argc, char * argv[] ) {
         std::cerr << argv[0] << " movingImageFile  fixedImageFile" << std::endl;
         return EXIT_FAILURE;
     }
-//    const char *moving_image_label = argv[1];
-//    const char *fixed_image_label = argv[2];
-//    auto fixed_cloud = ReaditkImageToPCLPointCloud<ImageType>(moving_image_label);
-//    auto moving_cloud = ReaditkImageToPCLPointCloud<ImageType>(fixed_image_label);
+    const char *moving_image_label = argv[1];
+    const char *fixed_image_label = argv[2];
+    const char *ct_new = "/Users/hui/Projects/Knee-MultiModality-Reg/Data/CTContourLabelRemoveError.nii";
+    std::vector<PointCloudPtr> clouds_vis;
+    auto fixed_cloud = ReaditkImageToPCLPointCloud<ImageType>(moving_image_label);
+    auto moving_cloud = ReaditkImageToPCLPointCloud<ImageType>(fixed_image_label);
+    auto ct_new_cloud = ReaditkImageToPCLPointCloud<ImageType>(ct_new);
+    pclPassThroughResult(ct_new_cloud, fixed_cloud);
+//    clouds_vis.push_back(moving_cloud);
+//    clouds_vis.push_back(ct_new_cloud);
+//    auto viewer = viewportsVis(moving_cloud, ct_new_cloud);
 //    pcl::io::savePLYFile<pcl::PointXYZ>("../Data/MR.ply", *fixed_cloud);
 //    pcl::io::savePLYFile<pcl::PointXYZ>("../Data/CT.ply", *moving_cloud);
-    std::vector<PointCloudPtr> clouds_vis;
+//    pcl::io::savePLYFile<pcl::PointXYZ>("../Data/CT_new.ply", *ct_new_cloud);
+
     PointCloudPtr fixed(new PointCloudType);
     PointCloudPtr moving(new PointCloudType);
     pcl::io::loadPLYFile("../Data/MR_PT.ply", *fixed);
@@ -204,30 +215,32 @@ int main( int argc, char * argv[] ) {
     clouds_vis.push_back(ff);
 
 
-    pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
-    ne.setInputCloud(ff);
-    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>());
-    ne.setSearchMethod(tree);
-    pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
-    ne.setRadiusSearch(2);
-    ne.compute(*normals);
-    // Setup the principal curvatures computation
-    pcl::PrincipalCurvaturesEstimation<pcl::PointXYZ, pcl::Normal, pcl::PrincipalCurvatures> principal_curvatures_estimation;
-    // Provide the original point cloud (without normals)
-    principal_curvatures_estimation.setInputCloud (ff);
-    // Provide the point cloud with normals
-    principal_curvatures_estimation.setInputNormals (normals);
-    // Use the same KdTree from the normal estimation
-    principal_curvatures_estimation.setSearchMethod (tree);
-    principal_curvatures_estimation.setRadiusSearch (2);
-    // Actually compute the principal curvatures
-    pcl::PointCloud<pcl::PrincipalCurvatures>::Ptr principal_curvatures (new pcl::PointCloud<pcl::PrincipalCurvatures> ());
-    principal_curvatures_estimation.compute (*principal_curvatures);
-
-    std::cout << "output points.size (): " << principal_curvatures->points.size() << std::endl;
-    // Display and retrieve the shape context descriptor vector for the 0th point.
-    pcl::PrincipalCurvatures descriptor = principal_curvatures->points[0];
-    std::cout << descriptor << std::endl;
+//    pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
+//    ne.setInputCloud(ff);
+//    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>());
+//    ne.setSearchMethod(tree);
+//    pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
+//    ne.setRadiusSearch(2);
+//    ne.compute(*normals);
+//    // Setup the principal curvatures computation
+//    pcl::PrincipalCurvaturesEstimation<pcl::PointXYZ, pcl::Normal, pcl::PrincipalCurvatures>
+//            principal_curvatures_estimation;
+//    // Provide the original point cloud (without normals)
+//    principal_curvatures_estimation.setInputCloud (ff);
+//    // Provide the point cloud with normals
+//    principal_curvatures_estimation.setInputNormals (normals);
+//    // Use the same KdTree from the normal estimation
+//    principal_curvatures_estimation.setSearchMethod (tree);
+//    principal_curvatures_estimation.setRadiusSearch (2);
+//    // Actually compute the principal curvatures
+//    pcl::PointCloud<pcl::PrincipalCurvatures>::Ptr
+//    principal_curvatures (new pcl::PointCloud<pcl::PrincipalCurvatures> ());
+//    principal_curvatures_estimation.compute (*principal_curvatures);
+//
+//    std::cout << "output points.size (): " << principal_curvatures->points.size() << std::endl;
+//    // Display and retrieve the shape context descriptor vector for the 0th point.
+//    pcl::PrincipalCurvatures descriptor = principal_curvatures->points[0];
+//    std::cout << descriptor << std::endl;
 //    pcl::StatisticalOutlierRemoval<pcl::PointXYZ> statFilter;
 //    PointCloudPtr filtered(new PointCloudType);
 //    statFilter.setInputCloud(ff);
@@ -235,12 +248,12 @@ int main( int argc, char * argv[] ) {
 //    statFilter.setStddevMulThresh(0.1); //设置判断是否为离群点的阈值
 //    statFilter.filter(*filtered);
 
-//    auto final = pclICP(mf, ff);
-//    clouds_vis.push_back(final);
+    auto final = pclICP(mf, ff);
+    clouds_vis.push_back(final);
 
-    auto viewer = PCSVis(ff, normals, principal_curvatures);
+//    auto viewer = PCSVis(ff, normals, principal_curvatures);
 //    auto viewer = NormalVis(ff, normals);
-//    auto viewer = customColourVis(clouds_vis);
+    auto viewer = customColourVis(clouds_vis);
 //    auto viewer = viewportsVis(ff, filtered);
     while (!viewer->wasStopped()) {
         viewer->spinOnce(100);
