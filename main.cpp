@@ -190,7 +190,7 @@ int main( int argc, char * argv[] ) {
     const char *moving_image_label = argv[1];
     const char *fixed_image_label = argv[2];
     const char *ct_new = "/Users/hui/Projects/Knee-MultiModality-Reg/Data/CTContourLabelRemoveError.nii";
-    std::vector<PointCloudPtr> clouds_vis;
+    std::vector<PointCloudPtr> c louds_vis;
     auto fixed_cloud = ReaditkImageToPCLPointCloud<ImageType>(moving_image_label);
     auto moving_cloud = ReaditkImageToPCLPointCloud<ImageType>(fixed_image_label);
     auto ct_new_cloud = ReaditkImageToPCLPointCloud<ImageType>(ct_new);
