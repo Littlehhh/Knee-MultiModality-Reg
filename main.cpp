@@ -26,6 +26,8 @@
 #include <pcl/features/normal_3d.h>
 #include <pcl/features/principal_curvatures.h>
 
+#include <pcl/registration/ndt.h>
+
 
 #include <pcl/io/ply_io.h>
 
@@ -179,6 +181,7 @@ PCSVis (PointCloudPtr cloud, pcl::PointCloud<pcl::Normal>::Ptr normals,pcl::Poin
     return (viewer);
 }
 
+std::vector<PointCloudPtr> clouds_vis;
 
 int main( int argc, char * argv[] ) {
     // Verify the number of parameters in the command line
@@ -187,14 +190,13 @@ int main( int argc, char * argv[] ) {
         std::cerr << argv[0] << " movingImageFile  fixedImageFile" << std::endl;
         return EXIT_FAILURE;
     }
-    const char *moving_image_label = argv[1];
-    const char *fixed_image_label = argv[2];
-    const char *ct_new = "/Users/hui/Projects/Knee-MultiModality-Reg/Data/CTContourLabelRemoveError.nii";
-    std::vector<PointCloudPtr> c louds_vis;
-    auto fixed_cloud = ReaditkImageToPCLPointCloud<ImageType>(moving_image_label);
-    auto moving_cloud = ReaditkImageToPCLPointCloud<ImageType>(fixed_image_label);
-    auto ct_new_cloud = ReaditkImageToPCLPointCloud<ImageType>(ct_new);
-    pclPassThroughResult(ct_new_cloud, fixed_cloud);
+//    const char *moving_image_label = argv[1];
+//    const char *fixed_image_label = argv[2];
+//    const char *ct_new = "/Users/hui/Projects/Knee-MultiModality-Reg/Data/CTContourLabelRemoveError.nii";
+//    auto fixed_cloud = ReaditkImageToPCLPointCloud<ImageType>(moving_image_label);
+//    auto moving_cloud = ReaditkImageToPCLPointCloud<ImageType>(fixed_image_label);
+//    auto ct_new_cloud = ReaditkImageToPCLPointCloud<ImageType>(ct_new);
+//    pclPassThroughResult(ct_new_cloud, fixed_cloud);
 //    clouds_vis.push_back(moving_cloud);
 //    clouds_vis.push_back(ct_new_cloud);
 //    auto viewer = viewportsVis(moving_cloud, ct_new_cloud);
@@ -241,6 +243,7 @@ int main( int argc, char * argv[] ) {
 //    // Display and retrieve the shape context descriptor vector for the 0th point.
 //    pcl::PrincipalCurvatures descriptor = principal_curvatures->points[0];
 //    std::cout << descriptor << std::endl;
+
 //    pcl::StatisticalOutlierRemoval<pcl::PointXYZ> statFilter;
 //    PointCloudPtr filtered(new PointCloudType);
 //    statFilter.setInputCloud(ff);
@@ -250,6 +253,36 @@ int main( int argc, char * argv[] ) {
 
     auto final = pclICP(mf, ff);
     clouds_vis.push_back(final);
+
+//    // 初始化正态分布(NDT)对象
+//    pcl::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ> ndt;
+//
+//    // 根据输入数据的尺度设置NDT相关参数
+//    ndt.setTransformationEpsilon (0.01);// 为终止条件设置最小转换差异
+//    ndt.setStepSize (0.1);              // 为more-thuente线搜索设置最大步长
+//    ndt.setResolution (1.0);            // 设置NDT网格网格结构的分辨率（voxelgridcovariance）
+//
+//    //以上参数在使用房间尺寸比例下运算比较好，但是如果需要处理例如一个咖啡杯子的扫描之类更小的物体，需要对参数进行很大程度的缩小
+//
+//    //设置匹配迭代的最大次数，这个参数控制程序运行的最大迭代次数，一般来说这个限制值之前优化程序会在epsilon变换阀值下终止
+//    //添加最大迭代次数限制能够增加程序的鲁棒性阻止了它在错误的方向上运行时间过长
+//    ndt.setMaximumIterations (35);
+//
+//    ndt.setInputSource (mf);  //源点云
+//    // Setting point cloud to be aligned to.
+//    ndt.setInputTarget (ff);  //目标点云
+//
+//    // 设置使用机器人测距法得到的粗略初始变换矩阵结果
+//    Eigen::AngleAxisf init_rotation (0.6931, Eigen::Vector3f::UnitZ ());
+//    Eigen::Translation3f init_translation (1.79387, 0.720047, 0);
+//    Eigen::Matrix4f init_guess = (init_translation * init_rotation).matrix ();
+//
+//    // 计算需要的刚体变换以便将输入的源点云匹配到目标点云
+//    pcl::PointCloud<pcl::PointXYZ>::Ptr output_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+//    ndt.align (*output_cloud, init_guess);
+//
+//    clouds_vis.push_back(output_cloud);
+
 
 //    auto viewer = PCSVis(ff, normals, principal_curvatures);
 //    auto viewer = NormalVis(ff, normals);

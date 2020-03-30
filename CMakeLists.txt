@@ -7,12 +7,11 @@ find_package(PCL 1.9 REQUIRED)
 find_package(EIGEN3 REQUIRED NO_MODULE)
 find_package(ITK REQUIRED)
 find_package(VTK REQUIRED)
-#set(_internal_cmake_eigen3)
-#list(GET ITKEigen3_INCLUDE_DIRS 0 _internal_cmake_eigen3)
-#set(Eigen3_DIR "${_internal_cmake_eigen3}/itkeigen")
+
+
 include_directories(${EIGEN_INCLUDE_DIR})
 
-#option(ITK_USE_SYSTEM_EIGEN 1)
+
 INCLUDE( ${ITK_USE_FILE} )
 INCLUDE( ${VTK_USE_FILE} )
 itk_module_config(ITK ${ITK_MODULES_ENABLED})
