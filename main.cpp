@@ -1,12 +1,15 @@
 //
 // Created by HuiWang on 2020/2/16.
 //
-#define ITK_USE_SYSTEM_EIGEN
-// uha
 
+// use system eigen for vtk visualization
+#define ITK_USE_SYSTEM_EIGEN
+
+// cpp std
 #include <iostream>
 #include <string>
 #include <vector>
+
 // itk header
 #include <itkImage.h>
 #include <itkPointSet.h>
@@ -16,27 +19,23 @@
 // PCL header
 #include <pcl/point_cloud.h>
 #include <pcl/visualization/pcl_visualizer.h>
-
-
 #include <pcl/filters/passthrough.h>
 #include <pcl/filters/uniform_sampling.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/statistical_outlier_removal.h>
-
 #include <pcl/features/normal_3d.h>
 #include <pcl/features/principal_curvatures.h>
-
 #include <pcl/registration/ndt.h>
-
-
 #include <pcl/io/ply_io.h>
-
 #include <pcl/registration/icp.h>
 
-#include "itkImageTopclPointCloud.h"
-
+// vtk header
 #include <vtkSmartPointer.h>
 #include <vtkNamedColors.h>
+
+// project header
+#include "itkImageTopclPointCloud.h"
+
 
 using PixelType = float;
 constexpr unsigned int Dimension = 3;
@@ -62,6 +61,7 @@ ReaditkImageToPCLPointCloud(const char *file_name){
     }
     return itkImageTopclPointCloud<ImageType>(reader);
 }
+
 pcl::visualization::PCLVisualizer::Ptr
 customColourVis (std::vector<PointCloudPtr> &clouds)
 {
@@ -85,8 +85,9 @@ customColourVis (std::vector<PointCloudPtr> &clouds)
     viewer->initCameraParameters ();
     return viewer;
 }
+
 void
-pclPassThroughResult(PointCloudPtr moving, PointCloudPtr fixed){
+pclPassThroughResult(PointCloudPtr &moving, PointCloudPtr &fixed){
     pcl::PassThrough<pcl::PointXYZ>::Ptr pass_z(new pcl::PassThrough<pcl::PointXYZ>);
     pass_z->setInputCloud(moving);
     pass_z->setFilterFieldName("z");
@@ -110,7 +111,7 @@ pclPassThroughResult(PointCloudPtr moving, PointCloudPtr fixed){
 
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr
-pclICP(PointCloudPtr moving, PointCloudPtr fixed){
+pclICP(PointCloudPtr &moving, PointCloudPtr &fixed){
     pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
     icp.setInputSource(moving);
     icp.setInputTarget(fixed);
@@ -125,7 +126,7 @@ pclICP(PointCloudPtr moving, PointCloudPtr fixed){
     return final;
 }
 pcl::visualization::PCLVisualizer::Ptr
-viewportsVis (PointCloudPtr cloud1, PointCloudPtr cloud2)
+viewportsVis (PointCloudPtr &cloud1, PointCloudPtr &cloud2)
 {
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
     viewer->initCameraParameters ();
@@ -143,7 +144,7 @@ viewportsVis (PointCloudPtr cloud1, PointCloudPtr cloud2)
     return (viewer);
 }
 pcl::PointCloud<pcl::PointXYZ>::Ptr
-downSample(PointCloudPtr input, float leafSize){
+downSample(PointCloudPtr &input, float leafSize){
     pcl::VoxelGrid<PointType> voxelGrid;
     PointCloudPtr filtered(new PointCloudType);
     voxelGrid.setInputCloud(input);
@@ -152,7 +153,7 @@ downSample(PointCloudPtr input, float leafSize){
     return  filtered;
 }
 pcl::visualization::PCLVisualizer::Ptr
-NormalVis (PointCloudPtr cloud, pcl::PointCloud<pcl::Normal>::Ptr normals)
+NormalVis (PointCloudPtr &cloud, pcl::PointCloud<pcl::Normal>::Ptr &normals)
 {
     pcl::visualization::PCLVisualizer::Ptr viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
     viewer->initCameraParameters ();
@@ -162,12 +163,12 @@ NormalVis (PointCloudPtr cloud, pcl::PointCloud<pcl::Normal>::Ptr normals)
 
     viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "cloud");
     viewer->addPointCloudNormals<pcl::PointXYZ, pcl::Normal> (cloud, normals,10, 5, "Normals");
-    viewer->addCoordinateSystem (1.0);  //添加法线  每个视图都有一组对应的法线
+    viewer->addCoordinateSystem (1.0);
     return (viewer);
 }
 
 pcl::visualization::PCLVisualizer::Ptr
-PCSVis (PointCloudPtr cloud, pcl::PointCloud<pcl::Normal>::Ptr normals,pcl::PointCloud<pcl::PrincipalCurvatures>::Ptr pcs)
+PCSVis (const PointCloudPtr& cloud, const pcl::PointCloud<pcl::Normal>::Ptr &normals,const pcl::PointCloud<pcl::PrincipalCurvatures>::Ptr pcs)
 {
     pcl::visualization::PCLVisualizer::Ptr viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
     viewer->initCameraParameters ();
@@ -180,6 +181,37 @@ PCSVis (PointCloudPtr cloud, pcl::PointCloud<pcl::Normal>::Ptr normals,pcl::Poin
     viewer->addCoordinateSystem (1.0);
     return (viewer);
 }
+
+void NDTReg(const PointCloudPtr &moving, const PointCloudPtr &fixed){
+        // 初始化正态分布(NDT)对象
+    pcl::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ> ndt;
+
+    // 根据输入数据的尺度设置NDT相关参数
+    ndt.setTransformationEpsilon (0.01);// 为终止条件设置最小转换差异
+    ndt.setStepSize (0.1);              // 为more-thuente线搜索设置最大步长
+    ndt.setResolution (1.0);            // 设置NDT网格网格结构的分辨率（voxelgridcovariance）
+
+    //以上参数在使用房间尺寸比例下运算比较好，但是如果需要处理例如一个咖啡杯子的扫描之类更小的物体，需要对参数进行很大程度的缩小
+
+    //设置匹配迭代的最大次数，这个参数控制程序运行的最大迭代次数，一般来说这个限制值之前优化程序会在epsilon变换阀值下终止
+    //添加最大迭代次数限制能够增加程序的鲁棒性阻止了它在错误的方向上运行时间过长
+    ndt.setMaximumIterations (35);
+
+    ndt.setInputSource (moving);  //源点云
+    // Setting point cloud to be aligned to.
+    ndt.setInputTarget (fixed);  //目标点云
+
+    // 设置使用机器人测距法得到的粗略初始变换矩阵结果
+    Eigen::AngleAxisf init_rotation (0.6931, Eigen::Vector3f::UnitZ ());
+    Eigen::Translation3f init_translation (1.79387, 0.720047, 0);
+    Eigen::Matrix4f init_guess = (init_translation * init_rotation).matrix ();
+
+    // 计算需要的刚体变换以便将输入的源点云匹配到目标点云
+    pcl::PointCloud<pcl::PointXYZ>::Ptr output_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+    ndt.align (*output_cloud, init_guess);
+
+}
+
 
 std::vector<PointCloudPtr> clouds_vis;
 
@@ -254,34 +286,7 @@ int main( int argc, char * argv[] ) {
     auto final = pclICP(mf, ff);
     clouds_vis.push_back(final);
 
-//    // 初始化正态分布(NDT)对象
-//    pcl::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ> ndt;
-//
-//    // 根据输入数据的尺度设置NDT相关参数
-//    ndt.setTransformationEpsilon (0.01);// 为终止条件设置最小转换差异
-//    ndt.setStepSize (0.1);              // 为more-thuente线搜索设置最大步长
-//    ndt.setResolution (1.0);            // 设置NDT网格网格结构的分辨率（voxelgridcovariance）
-//
-//    //以上参数在使用房间尺寸比例下运算比较好，但是如果需要处理例如一个咖啡杯子的扫描之类更小的物体，需要对参数进行很大程度的缩小
-//
-//    //设置匹配迭代的最大次数，这个参数控制程序运行的最大迭代次数，一般来说这个限制值之前优化程序会在epsilon变换阀值下终止
-//    //添加最大迭代次数限制能够增加程序的鲁棒性阻止了它在错误的方向上运行时间过长
-//    ndt.setMaximumIterations (35);
-//
-//    ndt.setInputSource (mf);  //源点云
-//    // Setting point cloud to be aligned to.
-//    ndt.setInputTarget (ff);  //目标点云
-//
-//    // 设置使用机器人测距法得到的粗略初始变换矩阵结果
-//    Eigen::AngleAxisf init_rotation (0.6931, Eigen::Vector3f::UnitZ ());
-//    Eigen::Translation3f init_translation (1.79387, 0.720047, 0);
-//    Eigen::Matrix4f init_guess = (init_translation * init_rotation).matrix ();
-//
-//    // 计算需要的刚体变换以便将输入的源点云匹配到目标点云
-//    pcl::PointCloud<pcl::PointXYZ>::Ptr output_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-//    ndt.align (*output_cloud, init_guess);
-//
-//    clouds_vis.push_back(output_cloud);
+
 
 
 //    auto viewer = PCSVis(ff, normals, principal_curvatures);

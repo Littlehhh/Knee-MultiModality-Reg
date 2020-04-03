@@ -13,21 +13,11 @@ include_directories(${EIGEN_INCLUDE_DIR})
 
 
 INCLUDE( ${ITK_USE_FILE} )
-INCLUDE( ${VTK_USE_FILE} )
 itk_module_config(ITK ${ITK_MODULES_ENABLED})
 
-#message(STATUS "Eigen3_ROOT: ${Eigen_ROOT}")
-#message(STATUS "From ITK: Eigen3_DIR: ${Eigen3_DIR}")
-#message(STATUS "ITK_MODULES_ENABLED: " ${ITK_MODULES_ENABLED})
-#message(STATUS "project source: " ${PROJECT_SOURCE_DIR})
-#message(STATUS "project binary: " ${PROJECT_BINARY_DIR})
-#message(STATUS "ITK libs: " ${ITK_LIBRARIES})
-#message(STATUS "ITK USE: " ${ITK_USE_SYSTEM_EIGEN})
+INCLUDE( ${VTK_USE_FILE} )
 
-#get_cmake_property(_variableNames VARIABLES)
-#foreach (_variableName ${_variableNames})
-#    message(STATUS "${_variableName}=${${_variableName}}")
-#endforeach()
+
 
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
