@@ -24,10 +24,14 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/features/normal_3d.h>
+
 #include <pcl/features/principal_curvatures.h>
+#include <pcl/features/pfh.h>
+
 #include <pcl/registration/ndt.h>
 #include <pcl/io/ply_io.h>
 #include <pcl/registration/icp.h>
+#include <pcl/registration/ia_ransac.h>
 
 // vtk header
 #include <vtkSmartPointer.h>
@@ -109,16 +113,15 @@ pclPassThroughResult(PointCloudPtr &moving, PointCloudPtr &fixed){
 
 }
 
-
 pcl::PointCloud<pcl::PointXYZ>::Ptr
-pclICP(PointCloudPtr &moving, PointCloudPtr &fixed){
+pclICP(PointCloudPtr &moving, PointCloudPtr &fixed, Eigen::Matrix4f init_transform = Eigen::Matrix4f::Identity()){
     pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
     icp.setInputSource(moving);
     icp.setInputTarget(fixed);
-    icp.setMaximumIterations(200);
+    icp.setMaximumIterations(300);
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr final(new pcl::PointCloud<pcl::PointXYZ>);
-    icp.align(*final);
+    icp.align(*final, init_transform);
     std::cout << "Max Iterations:" << icp.getMaximumIterations() << endl;
     std::cout << "has converged:" << icp.hasConverged() << endl;
     std::cout << "score: " << icp.getFitnessScore() << std::endl;
@@ -212,6 +215,67 @@ void NDTReg(const PointCloudPtr &moving, const PointCloudPtr &fixed){
 
 }
 
+pcl::PointCloud<pcl::PFHSignature125>::Ptr
+PFHcompute(const PointCloudPtr &cloud, float radius = 2){
+    pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
+    ne.setInputCloud(cloud);
+    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>());
+    ne.setSearchMethod(tree);
+    pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
+    ne.setRadiusSearch(radius);
+    ne.compute(*normals);
+
+    // Setup the feature computation
+    pcl::PFHEstimation<pcl::PointXYZ, pcl::Normal, pcl::PFHSignature125> pfh_estimation;
+    // Provide the original point cloud (without normals)
+    pfh_estimation.setInputCloud (cloud);
+    // Provide the point cloud with normals
+    pfh_estimation.setInputNormals (normals);
+
+    // pfh_estimation.setInputWithNormals (cloud, cloud_with_normals); PFHEstimation does not have this function
+    // Use the same KdTree from the normal estimation
+    pfh_estimation.setSearchMethod (tree);
+
+    pcl::PointCloud<pcl::PFHSignature125>::Ptr pfh_features (new pcl::PointCloud<pcl::PFHSignature125>);
+
+    pfh_estimation.setRadiusSearch (radius);
+
+    // Actually compute the spin images
+    pfh_estimation.compute (*pfh_features);
+    return pfh_features;
+}
+
+pcl::PointCloud<pcl::PrincipalCurvatures>::Ptr
+PCScompute(const PointCloudPtr &cloud){
+    pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
+    ne.setInputCloud(cloud);
+    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>());
+    ne.setSearchMethod(tree);
+    pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
+    ne.setRadiusSearch(2);
+    ne.compute(*normals);
+
+    // Setup the principal curvatures computation
+    pcl::PrincipalCurvaturesEstimation<pcl::PointXYZ, pcl::Normal, pcl::PrincipalCurvatures>
+            principal_curvatures_estimation;
+    // Provide the original point cloud (without normals)
+    principal_curvatures_estimation.setInputCloud (cloud);
+    // Provide the point cloud with normals
+    principal_curvatures_estimation.setInputNormals (normals);
+    // Use the same KdTree from the normal estimation
+    principal_curvatures_estimation.setSearchMethod (tree);
+    principal_curvatures_estimation.setRadiusSearch (2);
+    // Actually compute the principal curvatures
+    pcl::PointCloud<pcl::PrincipalCurvatures>::Ptr
+    principal_curvatures (new pcl::PointCloud<pcl::PrincipalCurvatures> ());
+    principal_curvatures_estimation.compute (*principal_curvatures);
+
+    std::cout << "output points.size (): " << principal_curvatures->points.size() << std::endl;
+    // Display and retrieve the shape context descriptor vector for the 0th point.
+    pcl::PrincipalCurvatures descriptor = principal_curvatures->points[0];
+    std::cout << descriptor << std::endl;
+    return principal_curvatures;
+}
 
 std::vector<PointCloudPtr> clouds_vis;
 
@@ -229,8 +293,7 @@ int main( int argc, char * argv[] ) {
 //    auto moving_cloud = ReaditkImageToPCLPointCloud<ImageType>(fixed_image_label);
 //    auto ct_new_cloud = ReaditkImageToPCLPointCloud<ImageType>(ct_new);
 //    pclPassThroughResult(ct_new_cloud, fixed_cloud);
-//    clouds_vis.push_back(moving_cloud);
-//    clouds_vis.push_back(ct_new_cloud);
+
 //    auto viewer = viewportsVis(moving_cloud, ct_new_cloud);
 //    pcl::io::savePLYFile<pcl::PointXYZ>("../Data/MR.ply", *fixed_cloud);
 //    pcl::io::savePLYFile<pcl::PointXYZ>("../Data/CT.ply", *moving_cloud);
@@ -240,58 +303,48 @@ int main( int argc, char * argv[] ) {
     PointCloudPtr moving(new PointCloudType);
     pcl::io::loadPLYFile("../Data/MR_PT.ply", *fixed);
     pcl::io::loadPLYFile("../Data/CT_PT.ply", *moving);
-//    clouds_vis.push_back(fixed);
-//    clouds_vis.push_back(moving);
-
-    auto mf = downSample(moving, 2);
-    auto ff = downSample(fixed, 2);
-//    clouds_vis.push_back(mf);
-    clouds_vis.push_back(ff);
 
 
-//    pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
-//    ne.setInputCloud(ff);
-//    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>());
-//    ne.setSearchMethod(tree);
-//    pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
-//    ne.setRadiusSearch(2);
-//    ne.compute(*normals);
-//    // Setup the principal curvatures computation
-//    pcl::PrincipalCurvaturesEstimation<pcl::PointXYZ, pcl::Normal, pcl::PrincipalCurvatures>
-//            principal_curvatures_estimation;
-//    // Provide the original point cloud (without normals)
-//    principal_curvatures_estimation.setInputCloud (ff);
-//    // Provide the point cloud with normals
-//    principal_curvatures_estimation.setInputNormals (normals);
-//    // Use the same KdTree from the normal estimation
-//    principal_curvatures_estimation.setSearchMethod (tree);
-//    principal_curvatures_estimation.setRadiusSearch (2);
-//    // Actually compute the principal curvatures
-//    pcl::PointCloud<pcl::PrincipalCurvatures>::Ptr
-//    principal_curvatures (new pcl::PointCloud<pcl::PrincipalCurvatures> ());
-//    principal_curvatures_estimation.compute (*principal_curvatures);
-//
-//    std::cout << "output points.size (): " << principal_curvatures->points.size() << std::endl;
-//    // Display and retrieve the shape context descriptor vector for the 0th point.
-//    pcl::PrincipalCurvatures descriptor = principal_curvatures->points[0];
-//    std::cout << descriptor << std::endl;
+    auto mf = downSample(moving, 1);
+    auto ff = downSample(fixed, 1);
 
-//    pcl::StatisticalOutlierRemoval<pcl::PointXYZ> statFilter;
-//    PointCloudPtr filtered(new PointCloudType);
-//    statFilter.setInputCloud(ff);
-//    statFilter.setMeanK(10); //设置在进行统计时考虑查询点邻近点数
-//    statFilter.setStddevMulThresh(0.1); //设置判断是否为离群点的阈值
-//    statFilter.filter(*filtered);
+    auto mPFH = PFHcompute(mf,5);
+    auto fPFH = PFHcompute(ff,5);
+
+    pcl::SampleConsensusInitialAlignment<pcl::PointXYZ, pcl::PointXYZ, pcl::PFHSignature125> sac_ia;
+    sac_ia.setInputSource(mf);
+    sac_ia.setSourceFeatures(mPFH);
+    sac_ia.setInputTarget(ff);
+    sac_ia.setTargetFeatures(fPFH);
+    PointCloudPtr align(new PointCloudType);
+    //  sac_ia.setNumberOfSamples(20);  //设置每次迭代计算中使用的样本数量（可省）,可节省时间
+    sac_ia.setCorrespondenceRandomness(6); //设置计算协方差时选择多少近邻点，该值越大，协防差越精确，但是计算效率越低.(可省)
+    sac_ia.align(*align);
+
+//    pcl::registration::CorrespondenceEstimation<pcl::PFHSignature125,pcl::PFHSignature125> crude_cor_est
+//    pcl::CorrespondencesPtr cru_correspondences (new pcl::Correspondences);
+//    crude_cor_est.setInputSource(mPFH);
+//    crude_cor_est.setInputTarget(fPFH);
+//    //  crude_cor_est.determineCorrespondences(cru_correspondences);
+//    crude_cor_est.determineReciprocalCorrespondences(*cru_correspondences);
+//    cout<<"crude size is:"<<cru_correspondences->size()<<endl;
+
+
+//    auto final_withInit = pclICP(mf, ff, sac_ia.getFinalTransformation());
 
     auto final = pclICP(mf, ff);
     clouds_vis.push_back(final);
+//    clouds_vis.push_back(final_withInit);
 
-
-
-
+//    clouds_vis.push_back(mf);
+    clouds_vis.push_back(ff);
+//    clouds_vis.push_back(align);
 //    auto viewer = PCSVis(ff, normals, principal_curvatures);
 //    auto viewer = NormalVis(ff, normals);
+
+
     auto viewer = customColourVis(clouds_vis);
+//    viewer->addCorrespondences<pcl::PointXYZ>(mf, ff, *cru_correspondences, "corr");
 //    auto viewer = viewportsVis(ff, filtered);
     while (!viewer->wasStopped()) {
         viewer->spinOnce(100);
