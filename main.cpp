@@ -32,6 +32,7 @@
 #include <pcl/io/ply_io.h>
 #include <pcl/registration/icp.h>
 #include <pcl/registration/ia_ransac.h>
+#include <pcl/registration/correspondence_rejection_median_distance.h>
 
 // vtk header
 #include <vtkSmartPointer.h>
@@ -321,24 +322,24 @@ int main( int argc, char * argv[] ) {
     sac_ia.setCorrespondenceRandomness(6); //设置计算协方差时选择多少近邻点，该值越大，协防差越精确，但是计算效率越低.(可省)
     sac_ia.align(*align);
 
-//    pcl::registration::CorrespondenceEstimation<pcl::PFHSignature125,pcl::PFHSignature125> crude_cor_est
-//    pcl::CorrespondencesPtr cru_correspondences (new pcl::Correspondences);
-//    crude_cor_est.setInputSource(mPFH);
-//    crude_cor_est.setInputTarget(fPFH);
-//    //  crude_cor_est.determineCorrespondences(cru_correspondences);
-//    crude_cor_est.determineReciprocalCorrespondences(*cru_correspondences);
-//    cout<<"crude size is:"<<cru_correspondences->size()<<endl;
+    pcl::registration::CorrespondenceEstimation<pcl::PFHSignature125,pcl::PFHSignature125> crude_cor_est;
+    pcl::CorrespondencesPtr cru_correspondences (new pcl::Correspondences);
+    crude_cor_est.setInputSource(mPFH);
+    crude_cor_est.setInputTarget(fPFH);
+    //  crude_cor_est.determineCorrespondences(cru_correspondences);
+    crude_cor_est.determineReciprocalCorrespondences(*cru_correspondences);
+    cout<<"crude size is:"<<cru_correspondences->size()<<endl;
 
 
 //    auto final_withInit = pclICP(mf, ff, sac_ia.getFinalTransformation());
 
-    auto final = pclICP(mf, ff);
-    clouds_vis.push_back(final);
+//    auto final = pclICP(mf, ff);
+//    clouds_vis.push_back(final);
 //    clouds_vis.push_back(final_withInit);
 
 //    clouds_vis.push_back(mf);
     clouds_vis.push_back(ff);
-//    clouds_vis.push_back(align);
+    clouds_vis.push_back(align);
 //    auto viewer = PCSVis(ff, normals, principal_curvatures);
 //    auto viewer = NormalVis(ff, normals);
 
