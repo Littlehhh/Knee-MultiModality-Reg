@@ -327,8 +327,8 @@ int main( int argc, char * argv[] ) {
     crude_cor_est.setInputSource(mPFH);
     crude_cor_est.setInputTarget(fPFH);
     //  crude_cor_est.determineCorrespondences(cru_correspondences);
-    crude_cor_est.determineReciprocalCorrespondences(*cru_correspondences);
-    cout<<"crude size is:"<<cru_correspondences->size()<<endl;
+//    crude_cor_est.determineReciprocalCorrespondences(*cru_correspondences);
+//    cout<<"crude size is:"<<cru_correspondences->size()<<endl;
 
 
 //    auto final_withInit = pclICP(mf, ff, sac_ia.getFinalTransformation());
