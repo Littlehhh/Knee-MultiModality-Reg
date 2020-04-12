@@ -27,6 +27,8 @@
 
 #include <pcl/features/principal_curvatures.h>
 #include <pcl/features/pfh.h>
+#include <pcl/registration/correspondence_rejection_distance.h>
+#include <pcl/registration/transformation_estimation_svd.h>
 
 #include <pcl/registration/ndt.h>
 #include <pcl/io/ply_io.h>
@@ -321,33 +323,48 @@ int main( int argc, char * argv[] ) {
 //    //  sac_ia.setNumberOfSamples(20);  //设置每次迭代计算中使用的样本数量（可省）,可节省时间
 //    sac_ia.setCorrespondenceRandomness(6); //设置计算协方差时选择多少近邻点，该值越大，协防差越精确，但是计算效率越低.(可省)
 //    sac_ia.align(*align);
-
-    pcl::registration::CorrespondenceEstimation<pcl::PFHSignature125,pcl::PFHSignature125> cor_est;
-    pcl::CorrespondencesPtr cru_correspondences (new pcl::Correspondences);
+    using namespace pcl::registration;
+    CorrespondenceEstimation<pcl::PFHSignature125,pcl::PFHSignature125> cor_est;
+    pcl::CorrespondencesPtr correspondences (new pcl::Correspondences);
     cor_est.setInputSource(mPFH);
     cor_est.setInputTarget(fPFH);
+//    cor_est.determineCorrespondences(*correspondences);
+    cor_est.determineReciprocalCorrespondences(*correspondences);
+    cout<<"crude size is:"<<correspondences->size()<<endl;
 
+    CorrespondenceRejectorDistance rej;
+    rej.setInputSource<PointType> (mf);
+    rej.setInputTarget<PointType> (ff);
+    rej.setMaximumDistance (30);
+    rej.setInputCorrespondences (correspondences);
+    pcl::CorrespondencesPtr remaining_correspondences (new pcl::Correspondences);
+    rej.getCorrespondences (*remaining_correspondences);
+    cout<<"remain size is:"<<remaining_correspondences->size()<<endl;
 
-    cor_est.determineCorrespondences(*cru_correspondences);
-    cor_est.determineReciprocalCorrespondences(*cru_correspondences);
-    cout<<"crude size is:"<<cru_correspondences->size()<<endl;
-
-
+//    for (int i = 0; i < remaining_correspondences->size (); ++i)
+//        std::cerr << remaining_correspondences->at (i) << std::endl;
+    // Obtain the best transformation between the two sets of keypoints given the remaining correspondences
+    Eigen::Matrix4f transform;
+    TransformationEstimationSVD<PointType , PointType> trans_est;
+    trans_est.estimateRigidTransformation (*mf, *ff, *remaining_correspondences, transform);
+    PointCloudPtr output(new PointCloudType);
+    transformPointCloud (*mf, *output, transform);
 //    auto final_withInit = pclICP(mf, ff, sac_ia.getFinalTransformation());
 
 //    auto final = pclICP(mf, ff);
 //    clouds_vis.push_back(final);
 //    clouds_vis.push_back(final_withInit);
 
-    clouds_vis.push_back(mf);
+//    clouds_vis.push_back(mf);
     clouds_vis.push_back(ff);
+    clouds_vis.push_back(output);
 //    clouds_vis.push_back(align);
 //    auto viewer = PCSVis(ff, normals, principal_curvatures);
 //    auto viewer = NormalVis(ff, normals);
 
-
     auto viewer = customColourVis(clouds_vis);
-    viewer->addCorrespondences<pcl::PointXYZ>(mf, ff, *cru_correspondences, "corr");
+//    viewer->addCorrespondences<pcl::PointXYZ>(mf, ff, *correspondences, "corr");
+//    viewer->addCorrespondences<pcl::PointXYZ>(mf, ff, *remaining_correspondences, "corr");
 //    auto viewer = viewportsVis(ff, filtered);
     while (!viewer->wasStopped()) {
         viewer->spinOnce(100);
