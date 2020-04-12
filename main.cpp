@@ -312,23 +312,25 @@ int main( int argc, char * argv[] ) {
     auto mPFH = PFHcompute(mf,5);
     auto fPFH = PFHcompute(ff,5);
 
-    pcl::SampleConsensusInitialAlignment<pcl::PointXYZ, pcl::PointXYZ, pcl::PFHSignature125> sac_ia;
-    sac_ia.setInputSource(mf);
-    sac_ia.setSourceFeatures(mPFH);
-    sac_ia.setInputTarget(ff);
-    sac_ia.setTargetFeatures(fPFH);
-    PointCloudPtr align(new PointCloudType);
-    //  sac_ia.setNumberOfSamples(20);  //设置每次迭代计算中使用的样本数量（可省）,可节省时间
-    sac_ia.setCorrespondenceRandomness(6); //设置计算协方差时选择多少近邻点，该值越大，协防差越精确，但是计算效率越低.(可省)
-    sac_ia.align(*align);
+//    pcl::SampleConsensusInitialAlignment<pcl::PointXYZ, pcl::PointXYZ, pcl::PFHSignature125> sac_ia;
+//    sac_ia.setInputSource(mf);
+//    sac_ia.setSourceFeatures(mPFH);
+//    sac_ia.setInputTarget(ff);
+//    sac_ia.setTargetFeatures(fPFH);
+//    PointCloudPtr align(new PointCloudType);
+//    //  sac_ia.setNumberOfSamples(20);  //设置每次迭代计算中使用的样本数量（可省）,可节省时间
+//    sac_ia.setCorrespondenceRandomness(6); //设置计算协方差时选择多少近邻点，该值越大，协防差越精确，但是计算效率越低.(可省)
+//    sac_ia.align(*align);
 
-    pcl::registration::CorrespondenceEstimation<pcl::PFHSignature125,pcl::PFHSignature125> crude_cor_est;
+    pcl::registration::CorrespondenceEstimation<pcl::PFHSignature125,pcl::PFHSignature125> cor_est;
     pcl::CorrespondencesPtr cru_correspondences (new pcl::Correspondences);
-    crude_cor_est.setInputSource(mPFH);
-    crude_cor_est.setInputTarget(fPFH);
-    //  crude_cor_est.determineCorrespondences(cru_correspondences);
-//    crude_cor_est.determineReciprocalCorrespondences(*cru_correspondences);
-//    cout<<"crude size is:"<<cru_correspondences->size()<<endl;
+    cor_est.setInputSource(mPFH);
+    cor_est.setInputTarget(fPFH);
+
+
+    cor_est.determineCorrespondences(*cru_correspondences);
+    cor_est.determineReciprocalCorrespondences(*cru_correspondences);
+    cout<<"crude size is:"<<cru_correspondences->size()<<endl;
 
 
 //    auto final_withInit = pclICP(mf, ff, sac_ia.getFinalTransformation());
@@ -337,15 +339,15 @@ int main( int argc, char * argv[] ) {
 //    clouds_vis.push_back(final);
 //    clouds_vis.push_back(final_withInit);
 
-//    clouds_vis.push_back(mf);
+    clouds_vis.push_back(mf);
     clouds_vis.push_back(ff);
-    clouds_vis.push_back(align);
+//    clouds_vis.push_back(align);
 //    auto viewer = PCSVis(ff, normals, principal_curvatures);
 //    auto viewer = NormalVis(ff, normals);
 
 
     auto viewer = customColourVis(clouds_vis);
-//    viewer->addCorrespondences<pcl::PointXYZ>(mf, ff, *cru_correspondences, "corr");
+    viewer->addCorrespondences<pcl::PointXYZ>(mf, ff, *cru_correspondences, "corr");
 //    auto viewer = viewportsVis(ff, filtered);
     while (!viewer->wasStopped()) {
         viewer->spinOnce(100);
