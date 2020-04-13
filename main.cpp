@@ -335,7 +335,7 @@ int main( int argc, char * argv[] ) {
     CorrespondenceRejectorDistance rej;
     rej.setInputSource<PointType> (mf);
     rej.setInputTarget<PointType> (ff);
-    rej.setMaximumDistance (30);
+    rej.setMaximumDistance (25);
     rej.setInputCorrespondences (correspondences);
     pcl::CorrespondencesPtr remaining_correspondences (new pcl::Correspondences);
     rej.getCorrespondences (*remaining_correspondences);
@@ -355,7 +355,7 @@ int main( int argc, char * argv[] ) {
 //    clouds_vis.push_back(final);
 //    clouds_vis.push_back(final_withInit);
 
-//    clouds_vis.push_back(mf);
+    clouds_vis.push_back(mf);
     clouds_vis.push_back(ff);
     clouds_vis.push_back(output);
 //    clouds_vis.push_back(align);
@@ -364,7 +364,7 @@ int main( int argc, char * argv[] ) {
 
     auto viewer = customColourVis(clouds_vis);
 //    viewer->addCorrespondences<pcl::PointXYZ>(mf, ff, *correspondences, "corr");
-//    viewer->addCorrespondences<pcl::PointXYZ>(mf, ff, *remaining_correspondences, "corr");
+    viewer->addCorrespondences<pcl::PointXYZ>(mf, ff, *remaining_correspondences, "corr");
 //    auto viewer = viewportsVis(ff, filtered);
     while (!viewer->wasStopped()) {
         viewer->spinOnce(100);
