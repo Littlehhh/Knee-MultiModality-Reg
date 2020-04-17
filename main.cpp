@@ -349,7 +349,7 @@ int main( int argc, char * argv[] ) {
     trans_est.estimateRigidTransformation (*mf, *ff, *remaining_correspondences, transform);
     PointCloudPtr output(new PointCloudType);
     transformPointCloud (*mf, *output, transform);
-//    auto final_withInit = pclICP(mf, ff, sac_ia.getFinalTransformation());
+    auto final_withInit = pclICP(mf, ff, sac_ia.getFinalTransformation());
 
 //    auto final = pclICP(mf, ff);
 //    clouds_vis.push_back(final);
