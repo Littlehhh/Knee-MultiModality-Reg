@@ -280,6 +280,22 @@ PCScompute(const PointCloudPtr &cloud){
     return principal_curvatures;
 }
 
+PointCloudPtr
+SampleConsensusRegistration(PointCloudPtr & moving, PointCloudPtr & fixed){
+    pcl::SampleConsensusInitialAlignment<pcl::PointXYZ, pcl::PointXYZ, pcl::PFHSignature125> sac_ia;
+    sac_ia.setInputSource(moving);
+    sac_ia.setSourceFeatures(PFHcompute(moving));
+    sac_ia.setInputTarget(fixed);
+    sac_ia.setTargetFeatures(PFHcompute(fixed));
+//    PointCloudPtr align(new PointCloudType);
+    PointCloudPtr align = boost::make_shared<PointCloudType>();
+    //  sac_ia.setNumberOfSamples(20);  //设置每次迭代计算中使用的样本数量（可省）,可节省时间
+    sac_ia.setCorrespondenceRandomness(6); //设置计算协方差时选择多少近邻点，该值越大，协防差越精确，但是计算效率越低.(可省)
+    sac_ia.align(*align);
+    return align;
+}
+
+
 std::vector<PointCloudPtr> clouds_vis;
 
 int main( int argc, char * argv[] ) {
@@ -314,15 +330,7 @@ int main( int argc, char * argv[] ) {
     auto mPFH = PFHcompute(mf,5);
     auto fPFH = PFHcompute(ff,5);
 
-//    pcl::SampleConsensusInitialAlignment<pcl::PointXYZ, pcl::PointXYZ, pcl::PFHSignature125> sac_ia;
-//    sac_ia.setInputSource(mf);
-//    sac_ia.setSourceFeatures(mPFH);
-//    sac_ia.setInputTarget(ff);
-//    sac_ia.setTargetFeatures(fPFH);
-//    PointCloudPtr align(new PointCloudType);
-//    //  sac_ia.setNumberOfSamples(20);  //设置每次迭代计算中使用的样本数量（可省）,可节省时间
-//    sac_ia.setCorrespondenceRandomness(6); //设置计算协方差时选择多少近邻点，该值越大，协防差越精确，但是计算效率越低.(可省)
-//    sac_ia.align(*align);
+
     using namespace pcl::registration;
     CorrespondenceEstimation<pcl::PFHSignature125,pcl::PFHSignature125> cor_est;
     pcl::CorrespondencesPtr correspondences (new pcl::Correspondences);
@@ -349,7 +357,7 @@ int main( int argc, char * argv[] ) {
     trans_est.estimateRigidTransformation (*mf, *ff, *remaining_correspondences, transform);
     PointCloudPtr output(new PointCloudType);
     transformPointCloud (*mf, *output, transform);
-    auto final_withInit = pclICP(mf, ff, sac_ia.getFinalTransformation());
+//    auto final_withInit = pclICP(mf, ff, sac_ia.getFinalTransformation());
 
 //    auto final = pclICP(mf, ff);
 //    clouds_vis.push_back(final);
