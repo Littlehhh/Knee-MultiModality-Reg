@@ -3,6 +3,7 @@
 //
 
 // use system eigen for vtk visualization
+
 //#define ITK_USE_SYSTEM_EIGEN
 
 // cpp std
@@ -14,6 +15,7 @@
 #include <itkImage.h>
 #include <itkPointSet.h>
 #include <itkImageFileReader.h>
+
 //#include <itkImageToVTKImageFilter.h>
 
 // PCL header
@@ -35,7 +37,9 @@
 #include <pcl/registration/icp.h>
 #include <pcl/registration/ia_ransac.h>
 #include <pcl/registration/correspondence_rejection_median_distance.h>
+
 #include <pcl/registration/correspondence_rejection_sample_consensus.h>
+
 
 // vtk header
 #include <vtkSmartPointer.h>
@@ -108,7 +112,9 @@ pclPassThroughResult(PointCloudPtr &moving, PointCloudPtr &fixed){
     pass_z->setInputCloud(fixed);
     pass_z->setFilterFieldName("z");
     pass_z->setFilterLimits(-65,-20);
+
     pass_z->setNegative(false);
+
     PointCloudPtr fixed_PT(new PointCloudType);
     pass_z->filter(*fixed_PT);
 
@@ -135,7 +141,9 @@ pclICP(PointCloudPtr &moving, PointCloudPtr &fixed, const Eigen::Matrix4f& init_
 pcl::visualization::PCLVisualizer::Ptr
 viewportsVis (PointCloudPtr &cloud1, PointCloudPtr &cloud2)
 {
+
     std::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
+
     viewer->initCameraParameters ();
     int v1(0);  //创建新的视口
     viewer->createViewPort(0.0, 0.0, 0.5, 1.0, v1);  //4个参数分别是X轴的最小值，最大值，Y轴的最小值，最大值，取值0-1，v1是标识
@@ -289,7 +297,9 @@ SampleConsensusRegistration(PointCloudPtr & moving, PointCloudPtr & fixed){
     sac_ia.setInputTarget(fixed);
     sac_ia.setTargetFeatures(PFHcompute(fixed));
 //    PointCloudPtr align(new PointCloudType);
+
     PointCloudPtr align = std::make_shared<PointCloudType>();
+
     //  sac_ia.setNumberOfSamples(20);  //设置每次迭代计算中使用的样本数量（可省）,可节省时间
     sac_ia.setCorrespondenceRandomness(6); //设置计算协方差时选择多少近邻点，该值越大，协防差越精确，但是计算效率越低.(可省)
     sac_ia.align(*align);
@@ -301,6 +311,7 @@ std::vector<PointCloudPtr> clouds_vis;
 
 int main( int argc, char * argv[] ) {
     // Verify the number of parameters in the command line
+
 //    if (argc < 3) {
 //        std::cerr << "Usage: " << std::endl;
 //        std::cerr << argv[0] << " movingImageFile  fixedImageFile" << std::endl;
@@ -312,15 +323,18 @@ int main( int argc, char * argv[] ) {
 //    const char *fixed_image_label = "/Users/hui/Data/knee/MR_jx_Channel1.nii.gz";
 //    const char *ct_new = "/Users/hui/Projects/Knee-MultiModality-Reg/Data/CTContourLabelRemoveError.nii";
 //    const char *ct_new = "/Users/hui/Data/knee/TTT_MR_jx_Channel1.nii.gz";
+
 //    auto fixed_cloud = ReaditkImageToPCLPointCloud<ImageType>(moving_image_label);
 //    auto moving_cloud = ReaditkImageToPCLPointCloud<ImageType>(fixed_image_label);
 //    auto ct_new_cloud = ReaditkImageToPCLPointCloud<ImageType>(ct_new);
 //    pclPassThroughResult(ct_new_cloud, fixed_cloud);
 
 //    auto viewer = viewportsVis(moving_cloud, ct_new_cloud);
+
 //    pcl::io::savePLYFile<pcl::PointXYZ>("../Data/MR_jx_Channel1.ply", *fixed_cloud);
 //    pcl::io::savePLYFile<pcl::PointXYZ>("../Data/label_JIANG_XU_femur.ply", *moving_cloud);
 //    pcl::io::savePLYFile<pcl::PointXYZ>("../Data/TTT_MR_jx_Channel1.ply", *ct_new_cloud);
+
 
     PointCloudPtr fixed(new PointCloudType);
     PointCloudPtr moving(new PointCloudType);
@@ -347,11 +361,15 @@ int main( int argc, char * argv[] ) {
     CorrespondenceRejectorDistance rej;
     rej.setInputSource<PointType> (mf);
     rej.setInputTarget<PointType> (ff);
+
     rej.setMaximumDistance (30);
+
+
     rej.setInputCorrespondences (correspondences);
     pcl::CorrespondencesPtr remaining_correspondences (new pcl::Correspondences);
     rej.getCorrespondences (*remaining_correspondences);
     cout<<"remain size is:"<<remaining_correspondences->size()<<endl;
+
 
     CorrespondenceRejectorSampleConsensus<PointType> ransac;
     ransac.setInputSource(mf);
@@ -365,11 +383,13 @@ int main( int argc, char * argv[] ) {
     cout << "RANSAC T" << ransac.getBestTransformation() << endl;
     cout<<"remain size is:"<<final->size()<<endl;
 
+
 //    for (int i = 0; i < remaining_correspondences->size (); ++i)
 //        std::cerr << remaining_correspondences->at (i) << std::endl;
     // Obtain the best transformation between the two sets of keypoints given the remaining correspondences
     Eigen::Matrix4f transform;
     TransformationEstimationSVD<PointType , PointType> trans_est;
+
     trans_est.estimateRigidTransformation (*mf, *ff, *final, transform);
     cout << "SVD T" << transform << endl;
 
@@ -405,7 +425,9 @@ int main( int argc, char * argv[] ) {
 
     auto viewer = customColourVis(clouds_vis);
 //    viewer->addCorrespondences<pcl::PointXYZ>(mf, ff, *correspondences, "corr");
+
     viewer->addCorrespondences<pcl::PointXYZ>(mf, ff, *final, "corr");
+
 //    auto viewer = viewportsVis(ff, filtered);
     while (!viewer->wasStopped()) {
         viewer->spinOnce(100);
