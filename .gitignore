@@ -1,0 +1,10 @@
+Data/
+build/
+cmake-build-debug/
+.vscode/
+.idea/
+.DS_Store
+*.ply
+*.txt
+*.nii.gz
+*.nii
